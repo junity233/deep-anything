@@ -1,5 +1,5 @@
 import openai
-from openai.types.chat import chat_completion
+from openai.types.chat import chat_completion, chat_completion_chunk
 from deepanything.Stream import Stream,AsyncStream
 from deepanything import Utility
 
@@ -126,6 +126,15 @@ class AsyncDeepseekReasonClient(AsyncReasonClient):
                 .on_next(lambda it : it.__anext__())
                 .on_close(lambda _: stream.close()))
 
+
+def _rebuild_chunk_for_openai(
+        chunk:chat_completion_chunk.ChatCompletionChunk
+) -> chat_completion_chunk.ChatCompletionChunk:
+    chunk.choices[0].delta.reasoning_content = chunk.choices[0].delta.content
+    chunk.choices[0].delta.content = None
+    return chunk
+
+
 class OpenaiReasonClient(ReasonClient):
     client : openai.OpenAI
     def __init__(
@@ -146,12 +155,14 @@ class OpenaiReasonClient(ReasonClient):
                       model: str,
                       **kwargs
                       ) -> Stream:
-        return self.client.chat.completions.create(
+        stream =  self.client.chat.completions.create(
             messages=messages,
             model=model,
             stream=True,
             **kwargs
         )
+
+        return Stream(stream).on_next(lambda it: _rebuild_chunk_for_openai(it.__next__())).on_close(lambda _: stream.close())
 
     def reason(
             self,
@@ -160,12 +171,19 @@ class OpenaiReasonClient(ReasonClient):
             stream = False,
             **kwargs
     ) -> Stream or chat_completion.ChatCompletion:
-        return self.client.chat.completions.create(
+        if stream:
+            return self.reason_stream(messages, model, **kwargs)
+        completion = self.client.chat.completions.create(
             messages=messages,
             model=model,
             stream=stream,
             **kwargs
         )
+
+        completion.choices[0].message.reasoning_content = completion.choices[0].message.content
+        completion.choices[0].message.content = None
+
+        return completion
 
 class AsyncOpenaiReasonClient(AsyncReasonClient):
     client : openai.AsyncOpenAI
@@ -182,12 +200,18 @@ class AsyncOpenaiReasonClient(AsyncReasonClient):
                             model: str,
                             **kwargs
                             ) -> AsyncStream:
-        return await self.client.chat.completions.create(
+
+        stream =  await self.client.chat.completions.create(
             messages=messages,
             model=model,
             stream=True,
             **kwargs
         )
+
+        async def _next(it):
+            return _rebuild_chunk_for_openai(await it.__anext__())
+
+        return AsyncStream(stream).on_next(lambda it: _next(it)).on_close(lambda _: stream.close())
 
     async def reason(self,
                      messages: list[dict],
@@ -195,9 +219,16 @@ class AsyncOpenaiReasonClient(AsyncReasonClient):
                      stream = False,
                      **kwargs
                      ) -> AsyncStream or chat_completion.ChatCompletion:
-        return await self.client.chat.completions.create(
+        if stream:
+            return await self.reason_stream(messages, model, **kwargs)
+
+        completion = await self.client.chat.completions.create(
             messages=messages,
             model=model,
-            stream=stream,
             **kwargs
         )
+
+        completion.choices[0].message.reasoning_content = completion.choices[0].message.content
+        completion.choices[0].message.content = None
+
+        return completion
