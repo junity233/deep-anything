@@ -18,5 +18,5 @@ class ChatCompletionQuery(BaseModel):
     top_p : Optional[float] = 1.0
     frequency_penalty : Optional[float] = 0.0
     presence_penalty : Optional[float] = 0.0
-    max_tokens : Optional[int] = 128000
+    max_tokens : Optional[int] = None
     stop : Optional[List[str]] = None
