@@ -4,3 +4,7 @@ test/*.*
 build
 .venv
 .idea
+/test/
+/deepanything.egg-info/
+/dist/
+__pycache__
