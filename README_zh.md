@@ -119,7 +119,7 @@ asyncio.run(main())
 ```
 更多示例可以在 [示例](examples) 中查看。
 
-### 2.作为服务器使用
+### 二.作为服务器使用
 ```bash
  python -m deepanything --host host --port port --config config.json
 ```
@@ -172,6 +172,24 @@ asyncio.run(main())
 - response_clients：回复模型的配置，目前仅支持openai一种类型。
 - api_keys：API密钥，用于验证用户身份。当不填写或为空列表时，服务器不使用API密钥进行身份验证。
 
+## 使用 Docker 部署
+### 1.拉取镜像
+```bash
+docker pull junity233/deepanything:latest
+```
+
+### 2.创建 config.json
+先在一个你希望的目录下创建一个文件夹，然后在里面创建一个名为 config.json 的文件。这个文件夹将会被挂载到容器中：
+```bash
+mkdir deepanything-data               # 可以替换为其它名称
+vim deepanything-data/config.json     # 编写配置文件，可以参考 examples/config.json
+```
+
+### 3.运行容器
+```bash
+# 记得修改端口映射
+docker run -v ./deepanything-data:/data -p 8080:8080 junity233/deepanything:latest
+```
 
 ## 许可证
 本项目采用 [MIT 许可证](LICENSE)

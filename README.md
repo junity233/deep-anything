@@ -181,6 +181,25 @@ Below is an example of a configuration file:
 - response_clients: Configuration for response models, currently only supports the openai type.
 - api_keys: API keys for user authentication. When left blank or an empty list, the server does not use API keys for authentication.
 
+## Deploying with Docker
+### 1. Pull the Image
+```bash
+docker pull junity233/deepanything:latest
+```
+
+### 2. Create config.json
+First, create a folder in your desired directory, and then create a file named `config.json` inside it. This folder will be mounted into the container:
+```bash
+mkdir deepanything-data               # You can replace this with another name
+vim deepanything-data/config.json     # Edit the configuration file, you can refer to examples/config.json
+```
+
+### 3. Run the Container
+```bash
+# Remember to modify the port mapping
+docker run -v ./deepanything-data:/data -p 8080:8080 junity233/deepanything:latest
+```
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE)
