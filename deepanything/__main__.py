@@ -12,7 +12,7 @@ def main():
     if args.config is not None:
         with open(args.config) as f:
             config = json.load(f)
-        server = DeepAnythingServer(host=args.host,port=args.port,config_object=config)
+        server = DeepAnythingServer(host=args.host, port=args.port, config=config)
         server.run()
     else:
         print("No config file specified.")

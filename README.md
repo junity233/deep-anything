@@ -122,6 +122,8 @@ async def main():
 asyncio.run(main())
 ```
 
+More example can be find in [examples](examples).
+
 ### 2. Use as a Server
 
 ```bash

@@ -117,6 +117,8 @@ async def main():
 
 asyncio.run(main())
 ```
+更多示例可以在 [示例](examples) 中查看。
+
 ### 2.作为服务器使用
 ```bash
  python -m deepanything --host host --port port --config config.json

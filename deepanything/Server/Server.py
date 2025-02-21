@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import time
 import uvicorn
 from typing import Dict, List, Optional
+import json
 
 from openai.types.model import Model as OpenaiModel
 from fastapi import FastAPI,Depends, HTTPException, status,Header
@@ -21,8 +22,8 @@ class ModelInfo:
     reason_model : str
     response_client : str
     response_model : str
-    created : int
-    reason_prompt : str
+    created : int = int(time.time())
+    reason_prompt : str = "<Think>{}</Think>"
 
 class DeepAnythingServer:
     app : FastAPI = FastAPI()
@@ -35,9 +36,12 @@ class DeepAnythingServer:
     api_keys : List[str] = []
     security = HTTPBearer()
 
-    def __init__(self, host:str = None, port:int = None,config_object : Dict = None):
-        if config_object is not None:
-            self.load_config(config_object)
+    def __init__(self, host:str = None, port:int = None, config : Any or str = None):
+        if config is not None:
+            if isinstance(config,str):
+                with open(config) as f:
+                    config = json.load(f)
+            self.load_config(config)
 
         if host:
             self.host = host
@@ -106,8 +110,17 @@ class DeepAnythingServer:
 
         self.api_keys = config_object.get("api_keys",[])
 
+
+    def add_reason_client(self,name:str,client:AsyncReasonClient):
+        self.reason_clients[name] = client
+
+    def add_response_client(self,name:str,client:AsyncResponseClient):
+        self.response_clients[name] = client
+
+    def add_model(self,name:str,model:ModelInfo):
+        self.models[name] = model
     def verify_authorization(self, authorization:Optional[str]):
-        if self.api_keys == []:
+        if not self.api_keys:
             return
 
         if authorization is None:
@@ -168,7 +181,7 @@ class DeepAnythingServer:
             )
             return res.model_dump_json()
 
-    async def get_models(self) -> Types.ModelsListResponse:
+    def get_models(self) -> Types.ModelsListResponse:
         return Types.ModelsListResponse(
             data = [OpenaiModel(
                     id = model_info.name,
