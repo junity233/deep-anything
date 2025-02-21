@@ -177,4 +177,4 @@ asyncio.run(main())
 ## 联系我们
 邮箱：1737636624@qq.com
 
-GitHub Issues：https://github.com/yourusername/deepseek-r1-integration/issues
+GitHub Issues：https://github.com/junity233/deep-anything/issues
