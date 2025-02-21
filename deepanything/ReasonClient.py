@@ -76,11 +76,14 @@ class DeepseekReasonClient(ReasonClient):
             messages=messages,
             model=model,
             stream=True,
+            stream_options = {"include_usage": True},
             **kwargs
         )
 
         def _iter():
             for chunk in stream:
+                if len(chunk.choices) == 0:
+                    yield chunk
                 if chunk.choices[0].delta.reasoning_content is not None:
                     yield chunk
                 else:
@@ -111,11 +114,15 @@ class AsyncDeepseekReasonClient(AsyncReasonClient):
             messages=messages,
             model=model,
             stream=True,
+            stream_options = {"include_usage": True},
             **kwargs
         )
 
         async def _iter():
             async for chunk in stream:
+                if len(chunk.choices) == 0:
+                    yield chunk
+                    continue
                 if chunk.choices[0].delta.reasoning_content is not None:
                     yield chunk
                 else:
@@ -130,8 +137,9 @@ class AsyncDeepseekReasonClient(AsyncReasonClient):
 def _rebuild_chunk_for_openai(
         chunk:chat_completion_chunk.ChatCompletionChunk
 ) -> chat_completion_chunk.ChatCompletionChunk:
-    chunk.choices[0].delta.reasoning_content = chunk.choices[0].delta.content
-    chunk.choices[0].delta.content = None
+    if len(chunk.choices):
+        chunk.choices[0].delta.reasoning_content = chunk.choices[0].delta.content
+        chunk.choices[0].delta.content = None
     return chunk
 
 
@@ -159,6 +167,7 @@ class OpenaiReasonClient(ReasonClient):
             messages=messages,
             model=model,
             stream=True,
+            stream_options = {"include_usage": True},
             **kwargs
         )
 
@@ -205,6 +214,7 @@ class AsyncOpenaiReasonClient(AsyncReasonClient):
             messages=messages,
             model=model,
             stream=True,
+            stream_options = {"include_usage": True},
             **kwargs
         )
 

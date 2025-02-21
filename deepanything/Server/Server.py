@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import time
 import uvicorn
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import json
 
 from openai.types.model import Model as OpenaiModel
@@ -53,6 +53,13 @@ class DeepAnythingServer:
 
     def run(self):
         uvicorn.run(self.app,host=self.host,port=self.port,log_level="trace")
+
+    @staticmethod
+    def _extract_args(query : Types.ChatCompletionQuery) -> dict:
+        args = query.dict()
+        for key in ["messages","model","stream"]:
+            args.pop(key)
+        return args
 
     def load_config(self,config_object : Dict) -> None:
         self.host = config_object.get("host","0.0.0.0")
@@ -153,6 +160,13 @@ class DeepAnythingServer:
                 yield f"data: {chunk.model_dump_json(indent=None)}\n\n"
             yield "data: [DONE]"
 
+        args = DeepAnythingServer._extract_args(query)
+
+        max_tokens = None
+        if "max_tokens" in args:
+            max_tokens = args["max_tokens"]
+            args.pop("max_tokens")
+
         if query.stream:
             res = sse(
                 await chat_completion_stream_async(
@@ -163,6 +177,9 @@ class DeepAnythingServer:
                     response_model=model.response_model,
                     show_model=model.name,
                     reason_prompt=model.reason_prompt,
+                    response_args=args,
+                    reason_args=args,
+                    max_tokens=max_tokens
                 )
             )
             return StreamingResponse(
@@ -177,7 +194,10 @@ class DeepAnythingServer:
                     response_client=self.response_clients[model.response_client],
                     response_model=model.response_model,
                     show_model=model.name,
-                    reason_prompt=model.reason_prompt
+                    reason_prompt=model.reason_prompt,
+                    response_args=args,
+                    reason_args=args,
+                    max_tokens=max_tokens
             )
             return res.model_dump_json()
 

@@ -168,7 +168,7 @@ def merge_chunk(
         model: str,
         created: int = int(time.time())
 ) -> chat_completion.ChatCompletion:
-    """同步合并 chunk 流"""
+
     reasoning_content = ""
     content = ""
     comp_tokens = prompt_tokens = total_tokens = 0

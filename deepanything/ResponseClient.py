@@ -55,6 +55,7 @@ class OpenaiResponseClient(ResponseClient):
                 messages=messages,
                 model=model,
                 stream=True,
+                stream_options = {"include_usage": True},
                 **kwargs
             )
 
@@ -83,5 +84,6 @@ class AsyncOpenaiResponseClient(AsyncResponseClient):
                 messages=messages,
                 model=model,
                 stream=True,
+                stream_options = {"include_usage": True},
                 **kwargs
             )

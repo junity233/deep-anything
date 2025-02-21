@@ -45,15 +45,19 @@ def _build_message(
         role="assistant",
         content=reason_prompt.format(reason_content)
     )]
-def _proecess_reason_chunk(chunk, reasoning_contents, reason_usage,show_model, created, _id):
-    delta = chunk.choices[0].delta
-    reasoning_contents.append(delta.reasoning_content)
+def _process_reason_chunk(chunk, reasoning_contents, reason_usage, show_model, created, _id):
     new_chunk = chunk.model_copy(deep=False)
     new_chunk.model = show_model
     new_chunk.created = created
     new_chunk.id = _id
+
     if new_chunk.usage is not None:
         reason_usage = new_chunk.usage
+
+    if chunk.choices:
+        delta = chunk.choices[0].delta
+        reasoning_contents.append(delta.reasoning_content)
+
     return new_chunk, reason_usage
 
 def _process_response_chunk(chunk, reason_usage,show_model, created, _id):
@@ -116,6 +120,8 @@ def chat_completion(
 
     if max_tokens is not None:
         max_tokens -= reason_chat_completion.usage.completion_tokens
+        if max_tokens <= 0:
+            return reason_chat_completion
         response_args["max_tokens"] = max_tokens
 
     response_chat_completion: ChatCompletion = response_client.chat_completions(
@@ -166,11 +172,13 @@ def chat_completion_stream(
         reason_usage = make_usage(0, 0, 0)
 
         for chunk in reason_stream:
-            new_chunk, reason_usage = _proecess_reason_chunk(chunk, reasoning_contents, reason_usage,show_model,created,_id)
+            new_chunk, reason_usage = _process_reason_chunk(chunk, reasoning_contents, reason_usage, show_model, created, _id)
             yield new_chunk
 
         if max_tokens is not None:
             max_tokens -= reason_usage.completion_tokens
+            if max_tokens <= 0:
+                return
             response_args["max_tokens"] = max_tokens
 
         new_messages = _build_message(messages,reason_content="".join(reasoning_contents),reason_prompt=reason_prompt)
@@ -219,7 +227,8 @@ async def chat_completion_async(
             response_args=response_args,
             created=created,
             _id=_id,
-            reason_prompt=reason_prompt
+            reason_prompt=reason_prompt,
+            max_tokens=max_tokens
         )
 
     if max_tokens is not None:
@@ -233,6 +242,8 @@ async def chat_completion_async(
 
     if max_tokens is not None:
         max_tokens -= reason_chat_completion.usage.completion_tokens
+        if max_tokens <= 0:
+            return reason_chat_completion
         response_args["max_tokens"] = max_tokens
 
     response_chat_completion:ChatCompletion = await response_client.chat_completions(
@@ -283,13 +294,15 @@ async def chat_completion_stream_async(
         reason_usage = make_usage(0,0,0)
 
         async for chunk in reason_stream:
-            new_chunk,reason_usage = _proecess_reason_chunk(chunk, reasoning_contents, reason_usage,show_model,created,_id)
+            new_chunk,reason_usage = _process_reason_chunk(chunk, reasoning_contents, reason_usage, show_model, created, _id)
             yield new_chunk
 
         new_messages = _build_message(messages,reason_content="".join(reasoning_contents),reason_prompt=reason_prompt)
 
         if max_tokens is not None:
             max_tokens -= reason_usage.completion_tokens
+            if max_tokens <= 0:
+                return
             response_args["max_tokens"] = max_tokens
 
         response_stream = await response_client.chat_completions_stream(
