@@ -1,0 +1,6 @@
+ChatCompletionStream.http
+ChatCompletion.http
+test/*.*
+build
+.venv
+.idea

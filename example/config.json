@@ -1,0 +1,30 @@
+// Using R1 with Qwen-Max-Latest
+{
+  "host" : "0.0.0.0",
+  "port" : 8080,
+  "reason_clients": [
+    {
+      "name" : "siliconflow",
+      "type" : "deepseek",
+      "base_url" : "https://api.siliconflow.cn/v1",
+      "api_key" : "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  ],
+  "response_clients": [
+    {
+      "name" : "qwen",
+      "type" : "openai",
+      "base_url" : "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "api_key" : "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  ],
+  "models": [
+    {
+      "name": "R1-Qwen-max",
+      "reason_client" : "siliconflow",
+      "response_client" : "qwen",
+      "reason_model": "Pro/deepseek-ai/DeepSeek-R1",
+      "response_model" :  "qwen-max-latest"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+openai~=1.63.2
+uvicorn~=0.34.0
+attrs~=25.1.0
+fastapi~=0.115.8
+pydantic~=2.10.6
+deepanything~=0.1.0
+setuptools~=68.2.0
