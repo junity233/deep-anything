@@ -133,6 +133,7 @@ asyncio.run(main())
 下面是一个配置文件的示例：
 
 ```json
+// Using R1 with Qwen-Max-Latest
 {
   "host" : "0.0.0.0",
   "port" : 8080,
@@ -161,9 +162,41 @@ asyncio.run(main())
       "response_model" :  "qwen-max-latest"
     }
   ],
-  "api_keys": [
+  "api_keys" : [
     "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  ]
+  ],
+  "log": {
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+        "default": {
+            "()": "uvicorn.logging.DefaultFormatter",
+            "fmt": "%(levelprefix)s %(message)s",
+            "use_colors": null
+        },
+        "access": {
+            "()": "uvicorn.logging.AccessFormatter",
+            "fmt": "%(levelprefix)s %(client_addr)s - \"%(request_line)s\" %(status_code)s"
+        }
+    },
+    "handlers": {
+        "default": {
+            "formatter": "default",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stderr"
+        },
+        "access": {
+            "formatter": "access",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout"
+        }
+    },
+    "loggers": {
+        "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": false},
+        "uvicorn.error": {"level": "INFO"},
+        "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": false}
+    }
+  }
 }
 ```
 **详细解释**
@@ -171,6 +204,7 @@ asyncio.run(main())
 - reason_clients：思考模型的配置，目前支持deepseek和openai两种类型。当type为openai时，deepanything直接使用模型的输出作为思考内容，推荐使用qwq-32b在这种情况下使用。
 - response_clients：回复模型的配置，目前仅支持openai一种类型。
 - api_keys：API密钥，用于验证用户身份。当不填写或为空列表时，服务器不使用API密钥进行身份验证。
+- log: 日志配置，若不填写此项则使用uvicorn默认的日志配置。具体可参考 [uvicorn日志配置](https://www.uvicorn.org/settings/#logging)。
 
 ## 使用 Docker 部署
 ### 1.拉取镜像
@@ -179,7 +213,7 @@ docker pull junity233/deepanything:latest
 ```
 
 ### 2.创建 config.json
-先在一个你希望的目录下创建一个文件夹，然后在里面创建一个名为 config.json 的文件。这个文件夹将会被挂载到容器中：
+首先在一个你希望的目录下创建一个文件夹，然后在里面创建一个名为 config.json 的文件。这个文件夹将会被挂载到容器中：
 ```bash
 mkdir deepanything-data               # 可以替换为其它名称
 vim deepanything-data/config.json     # 编写配置文件，可以参考 examples/config.json

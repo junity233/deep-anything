@@ -141,6 +141,7 @@ More example can be find in [examples](examples).
 Below is an example of a configuration file:
 
 ```json
+// Using R1 with Qwen-Max-Latest
 {
   "host" : "0.0.0.0",
   "port" : 8080,
@@ -169,9 +170,41 @@ Below is an example of a configuration file:
       "response_model" :  "qwen-max-latest"
     }
   ],
-  "api_keys": [
+  "api_keys" : [
     "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  ]
+  ],
+  "log": {
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+        "default": {
+            "()": "uvicorn.logging.DefaultFormatter",
+            "fmt": "%(levelprefix)s %(message)s",
+            "use_colors": null
+        },
+        "access": {
+            "()": "uvicorn.logging.AccessFormatter",
+            "fmt": "%(levelprefix)s %(client_addr)s - \"%(request_line)s\" %(status_code)s"
+        }
+    },
+    "handlers": {
+        "default": {
+            "formatter": "default",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stderr"
+        },
+        "access": {
+            "formatter": "access",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout"
+        }
+    },
+    "loggers": {
+        "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": false},
+        "uvicorn.error": {"level": "INFO"},
+        "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": false}
+    }
+  }
 }
 ```
 
@@ -180,6 +213,7 @@ Below is an example of a configuration file:
 - reason_clients: Configuration for thinking models, currently supports deepseek and openai types. When the type is openai, deepanything directly uses the model's output as the thinking content, and it is recommended to use qwq-32b in this case.
 - response_clients: Configuration for response models, currently only supports the openai type.
 - api_keys: API keys for user authentication. When left blank or an empty list, the server does not use API keys for authentication.
+- log: Log configuration. If this item is not filled in, the default logging configuration of uvicorn will be used. For details, please refer to [uvicorn logging configuration](https://www.uvicorn.org/settings/#logging).
 
 ## Deploying with Docker
 ### 1. Pull the Image
