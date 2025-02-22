@@ -1,3 +1,4 @@
+from chunk import Chunk
 from dataclasses import dataclass
 import time
 import uvicorn
@@ -6,7 +7,7 @@ import json
 
 from openai.types.model import Model as OpenaiModel
 from fastapi import FastAPI,Depends, HTTPException, status,Header,Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse,Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from uvicorn.config import LOGGING_CONFIG
 
@@ -184,14 +185,13 @@ class DeepAnythingServer:
 
         model = self.models[query.model]
 
-        # 修改点1：将request传递给_sse_warp生成器
         async def _sse_warp(it: AsyncStream, req: Request):
             async for chunk in it:
                 if await req.is_disconnected():
                     await it.close()
                     break
-                yield f"data: {chunk.model_dump_json(indent=None)}\n\n"
-            yield "data: [DONE]"
+                yield f"data: {chunk.model_dump_json(indent=None)}\n\n".encode("utf-8")
+            yield "data: [DONE]".encode('utf-8')
 
         args = DeepAnythingServer._extract_args(query)
 
@@ -214,11 +214,11 @@ class DeepAnythingServer:
                     reason_args=args,
                     max_tokens=max_tokens
                 ),
-                request  # 传入request对象
+                request
             )
             return StreamingResponse(
                 res,
-                media_type="text/event-stream"
+                media_type="text/event-stream",
             )
         else:
             res = await chat_completion_async(
@@ -233,7 +233,10 @@ class DeepAnythingServer:
                 reason_args=args,
                 max_tokens=max_tokens
             )
-            return res.model_dump_json()
+            return Response(
+                content=res.model_dump_json(indent=None),
+                media_type="application/json"
+            )
 
     def get_models(self) -> Types.ModelsListResponse:
         return Types.ModelsListResponse(
