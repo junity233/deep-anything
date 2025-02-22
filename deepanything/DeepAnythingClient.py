@@ -4,7 +4,8 @@ from openai.types.chat.chat_completion import ChatCompletion
 
 from deepanything.Stream import Stream,AsyncStream
 from deepanything.Utility import make_usage, make_chat_completion_message, merge_chunk, async_merge_chunk, \
-    make_chat_completion_chunk, make_chat_completion, make_chat_completion_choice, merge_usage, make_id_by_timestamp
+    make_chat_completion_chunk, make_chat_completion, make_chat_completion_choice, merge_usage, make_id_by_timestamp, \
+    attend_message
 from deepanything.ResponseClient import ResponseClient,AsyncResponseClient
 from deepanything.ReasonClient import ReasonClient,AsyncReasonClient
 
@@ -41,10 +42,7 @@ def _build_message(
         reason_content : str,
         reason_prompt : str
 ) -> List:
-    return messages + [make_chat_completion_message(
-        role="assistant",
-        content=reason_prompt.format(reason_content)
-    )]
+    return attend_message(messages,role="assistant",content=reason_prompt.format(reason_content))
 def _process_reason_chunk(chunk, reasoning_contents, reason_usage, show_model, created, _id):
     new_chunk = chunk.model_copy(deep=False)
     new_chunk.model = show_model
@@ -83,6 +81,7 @@ def chat_completion(
         reason_args=None,
         response_args=None,
         reason_prompt: str = "<Think>{}</Think>",
+        reason_system_prompt: Optional[str] = None,
         created: int = int(time.time()),
         stream = False,
         _id: str = make_id_by_timestamp(),
@@ -105,7 +104,8 @@ def chat_completion(
             created=created,
             _id=_id,
             reason_prompt=reason_prompt,
-            max_tokens=max_tokens
+            reason_system_prompt=reason_system_prompt,
+            max_tokens=max_tokens,
         )
 
     if max_tokens is not None:
@@ -145,6 +145,7 @@ def chat_completion_stream(
         reason_args=None,
         response_args=None,
         reason_prompt: str = "<Think>{}</Think>",
+        reason_system_prompt: Optional[str] = None,
         created: int = int(time.time()),
         _id: str = make_id_by_timestamp(),
         max_tokens : Optional[int] = None
@@ -166,6 +167,7 @@ def chat_completion_stream(
         reason_stream = reason_client.reason_stream(
             messages,
             reason_model,
+            reason_system_prompt,
             **reason_args
         )
         stream = reason_stream
@@ -206,6 +208,7 @@ async def chat_completion_async(
         reason_args=None,
         response_args=None,
         reason_prompt: str = "<Think>{}</Think>",
+        reason_system_prompt: Optional[str] = None,
         created: int = int(time.time()),
         _id: str = make_id_by_timestamp(),
         stream=False,
@@ -228,6 +231,7 @@ async def chat_completion_async(
             created=created,
             _id=_id,
             reason_prompt=reason_prompt,
+            reason_system_prompt=reason_system_prompt,
             max_tokens=max_tokens
         )
 
@@ -246,11 +250,14 @@ async def chat_completion_async(
             return reason_chat_completion
         response_args["max_tokens"] = max_tokens
 
+    messages = _build_message(
+        messages,
+        reason_chat_completion.choices[0].message.reasoning_content,
+        reason_prompt
+    )
+
     response_chat_completion:ChatCompletion = await response_client.chat_completions(
-        messages=messages + [make_chat_completion_message(
-            role="assistant",
-            content=reason_prompt.format(reason_chat_completion.choices[0].message.reasoning_content)
-        )],
+        messages=messages,
         model=response_model,
         **response_args
     )
@@ -267,6 +274,7 @@ async def chat_completion_stream_async(
         reason_args=None,
         response_args=None,
         reason_prompt: str = "<Think>{}</Think>",
+        reason_system_prompt: Optional[str] = None,
         created: int = int(time.time()),
         _id: str = make_id_by_timestamp(),
         max_tokens : Optional[int] = None
@@ -287,6 +295,7 @@ async def chat_completion_stream_async(
         reason_stream = await reason_client.reason_stream(
             messages,
             reason_model,
+            reason_system_prompt,
             **reason_args
         )
 
@@ -342,6 +351,7 @@ class DeepAnythingClient:
             show_model : str,
             reason_args=None,
             response_args=None,
+            reason_system_prompt: Optional[str] = None,
             created : int = int(time.time()),
             _id : str = make_id_by_timestamp(),
             stream = False
@@ -355,6 +365,7 @@ class DeepAnythingClient:
             show_model=show_model,
             reason_args=reason_args,
             response_args=response_args,
+            reason_system_prompt=reason_system_prompt,
             created=created,
             _id=_id,
             stream=stream,
@@ -369,6 +380,7 @@ class DeepAnythingClient:
             show_model : str,
             reason_args=None,
             response_args=None,
+            reason_system_prompt: Optional[str] = None,
             created : int = int(time.time()),
             _id : str = make_id_by_timestamp()
     ) -> Stream:
@@ -381,6 +393,7 @@ class DeepAnythingClient:
             show_model=show_model,
             reason_args=reason_args,
             response_args=response_args,
+            reason_system_prompt=reason_system_prompt,
             created=created,
             _id=_id,
             reason_prompt=self.reason_prompt
@@ -411,6 +424,7 @@ class AsyncDeepAnythingClient:
             show_model: str,
             reason_args=None,
             response_args=None,
+            reason_system_prompt: Optional[str] = None,
             created: int = int(time.time()),
             _id: str = make_id_by_timestamp(),
             stream=False
@@ -424,6 +438,7 @@ class AsyncDeepAnythingClient:
             show_model=show_model,
             reason_args=reason_args,
             response_args=response_args,
+            reason_system_prompt=reason_system_prompt,
             created=created,
             _id=_id,
             stream=stream,
@@ -438,6 +453,7 @@ class AsyncDeepAnythingClient:
             show_model : str,
             reason_args=None,
             response_args=None,
+            reason_system_prompt: Optional[str] = None,
             created : int = int(time.time()),
             _id : str = make_id_by_timestamp()
     ) -> AsyncStream:
@@ -450,6 +466,7 @@ class AsyncDeepAnythingClient:
             show_model=show_model,
             reason_args=reason_args,
             response_args=response_args,
+            reason_system_prompt=reason_system_prompt,
             created=created,
             _id=_id,
             reason_prompt=self.reason_prompt

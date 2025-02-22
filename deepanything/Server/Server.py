@@ -25,7 +25,8 @@ class ModelInfo:
     response_client : str
     response_model : str
     created : int = int(time.time())
-    reason_prompt : str = "<Think>{}</Think>"
+    reason_prompt : str = "<Think>{}</Think>",
+    reason_system_prompt : Optional[str] = None
 
 class DeepAnythingServer:
     app : FastAPI = FastAPI()
@@ -89,6 +90,7 @@ class DeepAnythingServer:
             response_model = _model["response_model"]
             created = _model.get("created", int(time.time()))
             reason_prompt = _model.get("reason_prompt", "<Think>{}</Think>")
+            reason_system_prompt = _model.get("reason_system_prompt", None)
 
             if reason_client not in self.reason_clients:
                 raise ValueError(f"Reason client '{reason_model}' for '{name}' not found")
@@ -103,7 +105,8 @@ class DeepAnythingServer:
                 response_client=response_client,
                 response_model=response_model,
                 created=created,
-                reason_prompt=reason_prompt
+                reason_prompt=reason_prompt,
+                reason_system_prompt=reason_system_prompt
             )
 
     def _load_response_clients(self, config_object):
@@ -212,7 +215,8 @@ class DeepAnythingServer:
                     reason_prompt=model.reason_prompt,
                     response_args=args,
                     reason_args=args,
-                    max_tokens=max_tokens
+                    max_tokens=max_tokens,
+
                 ),
                 request
             )

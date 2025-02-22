@@ -1,4 +1,7 @@
+from typing import Optional
+
 import openai
+from openai import OpenAI
 from openai.types.chat import chat_completion, chat_completion_chunk
 from deepanything.Stream import Stream,AsyncStream
 from deepanything import Utility
@@ -12,6 +15,7 @@ class ReasonClient:
             self,
             messages:list[dict],
             model:str,
+            reason_system_prompt:Optional[str] = None,
             stream = False,
             **kwargs
     ) -> Stream or chat_completion.ChatCompletion:
@@ -26,6 +30,7 @@ class ReasonClient:
     def reason_stream(self,
                       messages:list[dict],
                       model:str,
+                      reason_system_prompt:Optional[str] = None,
                       **kwargs
                       ) -> Stream:
         raise NotImplementedError
@@ -38,6 +43,7 @@ class AsyncReasonClient:
             self,
             messages:list[dict],
             model:str,
+            reason_system_prompt:Optional[str] = None,
             stream = False,
             **kwargs
     ) -> AsyncStream or chat_completion.ChatCompletion:
@@ -52,6 +58,7 @@ class AsyncReasonClient:
     async def reason_stream(self,
                             messages:list[dict],
                             model:str,
+                            reason_system_prompt:Optional[str] = None,
                             **kwargs
                             ) -> AsyncStream:
         raise NotImplementedError
@@ -70,6 +77,7 @@ class DeepseekReasonClient(ReasonClient):
     def reason_stream(self,
                       messages: list[dict],
                       model: str,
+                      reason_system_prompt:Optional[str] = None, # not used
                       **kwargs
                       ) -> Stream:
         stream = self.client.chat.completions.create(
@@ -108,6 +116,7 @@ class AsyncDeepseekReasonClient(AsyncReasonClient):
     async def reason_stream(self,
                             messages: list[dict],
                             model: str,
+                            reason_system_prompt:Optional[str] = None,
                             **kwargs
                             ) -> AsyncStream:
         stream = await self.client.chat.completions.create(
@@ -161,8 +170,12 @@ class OpenaiReasonClient(ReasonClient):
     def reason_stream(self,
                       messages: list[dict],
                       model: str,
+                      reason_system_prompt:Optional[str] = None,
                       **kwargs
                       ) -> Stream:
+        if reason_system_prompt is not None:
+            messages = Utility.attend_message(messages,role="system",content=reason_system_prompt)
+
         stream =  self.client.chat.completions.create(
             messages=messages,
             model=model,
@@ -177,11 +190,16 @@ class OpenaiReasonClient(ReasonClient):
             self,
             messages:list[dict],
             model:str,
+            reason_system_prompt:Optional[str] = None,
             stream = False,
             **kwargs
     ) -> Stream or chat_completion.ChatCompletion:
         if stream:
             return self.reason_stream(messages, model, **kwargs)
+
+        if reason_system_prompt is not None:
+            messages = Utility.attend_message(messages,role="system",content=reason_system_prompt)
+
         completion = self.client.chat.completions.create(
             messages=messages,
             model=model,
@@ -207,8 +225,12 @@ class AsyncOpenaiReasonClient(AsyncReasonClient):
     async def reason_stream(self,
                             messages: list[dict],
                             model: str,
+                            reason_system_prompt:Optional[str] = None,
                             **kwargs
                             ) -> AsyncStream:
+
+        if reason_system_prompt is not None:
+            messages = Utility.attend_message(messages,role="system",content=reason_system_prompt)
 
         stream =  await self.client.chat.completions.create(
             messages=messages,
@@ -226,11 +248,15 @@ class AsyncOpenaiReasonClient(AsyncReasonClient):
     async def reason(self,
                      messages: list[dict],
                      model: str,
+                     reason_system_prompt:Optional[str] = None,
                      stream = False,
                      **kwargs
                      ) -> AsyncStream or chat_completion.ChatCompletion:
         if stream:
             return await self.reason_stream(messages, model, **kwargs)
+
+        if reason_system_prompt is not None:
+            messages = Utility.attend_message(messages,role="system",content=reason_system_prompt)
 
         completion = await self.client.chat.completions.create(
             messages=messages,

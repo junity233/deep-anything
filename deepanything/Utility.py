@@ -6,6 +6,7 @@ import uuid
 from openai.types.chat import chat_completion_chunk,chat_completion,chat_completion_message
 from openai.types import completion_usage,completion_choice
 
+
 def make_usage(
         completion_tokens,
         prompt_tokens,
@@ -208,3 +209,15 @@ def merge_usage(
 
 def make_id_by_timestamp():
     return "chatcmpl-" + str(uuid.uuid4())
+
+def attend_message(
+        messages : List,
+        role : Literal["developer", "system", "user", "assistant", "tool"],
+        content : Optional[str] = None,
+        reason_content : Optional[str] = None,
+) -> List:
+    return messages + [make_chat_completion_message(
+        role=role,
+        content=content,
+        reasoning_content=reason_content
+    )]
