@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+from .deepanything.metadatas import VERSION
 
 with open("README.md",encoding='utf-8') as f:
     long_description = f.read()
@@ -8,7 +9,7 @@ with open("requirements.txt") as f:
 
 setup(
     name="deepanything",
-    version="0.1.5",
+    version=VERSION,
     author="Junity",
     author_email="1727636624@qq.com",
     description="DeepAnything is a project that provides DeepSeek R1's deep thinking capabilities for various large language models (LLMs).",
