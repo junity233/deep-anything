@@ -54,7 +54,7 @@ class DeepAnythingServer:
         self.app.add_api_route("/v1/chat/completions",self.chat_completions,methods=["POST"])
 
     def run(self):
-        uvicorn.run(self.app,host=self.host,port=self.port,log_level="trace")
+        uvicorn.run(self.app,host=self.host,port=self.port,log_config=self.log_config)
 
     @staticmethod
     def _extract_args(query : Types.ChatCompletionQuery) -> dict:
@@ -74,6 +74,8 @@ class DeepAnythingServer:
 
         self.api_keys = config_object.get("api_keys",[])
         self.log_config = config_object.get("log",LOGGING_CONFIG)
+        if self.log_config == {}:
+            self.log_config = LOGGING_CONFIG
 
 
     def _load_models(self, config_object):
