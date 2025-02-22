@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-from .deepanything.metadatas import VERSION
+from deepanything.metadatas import VERSION
 
 with open("README.md",encoding='utf-8') as f:
     long_description = f.read()
