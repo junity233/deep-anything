@@ -80,7 +80,7 @@ def chat_completion(
         show_model: str,
         reason_args=None,
         response_args=None,
-        reason_prompt: str = "<Think>{}</Think>",
+        reason_prompt: str = "<think>{}</think>",
         reason_system_prompt: Optional[str] = None,
         created: int = int(time.time()),
         stream = False,
@@ -144,7 +144,7 @@ def chat_completion_stream(
         show_model: str,
         reason_args=None,
         response_args=None,
-        reason_prompt: str = "<Think>{}</Think>",
+        reason_prompt: str = "<think>{}</think>",
         reason_system_prompt: Optional[str] = None,
         created: int = int(time.time()),
         _id: str = make_id_by_timestamp(),
@@ -207,7 +207,7 @@ async def chat_completion_async(
         show_model: str,
         reason_args=None,
         response_args=None,
-        reason_prompt: str = "<Think>{}</Think>",
+        reason_prompt: str = "<think>{}</think>",
         reason_system_prompt: Optional[str] = None,
         created: int = int(time.time()),
         _id: str = make_id_by_timestamp(),
@@ -273,7 +273,7 @@ async def chat_completion_stream_async(
         show_model: str,
         reason_args=None,
         response_args=None,
-        reason_prompt: str = "<Think>{}</Think>",
+        reason_prompt: str = "<think>{}</think>",
         reason_system_prompt: Optional[str] = None,
         created: int = int(time.time()),
         _id: str = make_id_by_timestamp(),
@@ -337,7 +337,7 @@ class DeepAnythingClient:
             self,
             reason_client: ReasonClient,
             response_client: ResponseClient,
-            reason_prompt : str = "<Think>{}</Think>"
+            reason_prompt : str = "<think>{}</think>"
     ):
         self.reason_client = reason_client
         self.response_client = response_client
@@ -410,7 +410,7 @@ class AsyncDeepAnythingClient:
             self,
             reason_client: AsyncReasonClient,
             response_client: AsyncResponseClient,
-            reason_prompt : str = "<Think>{}</Think>"
+            reason_prompt : str = "<think>{}</think>"
     ):
         self.reason_client = reason_client
         self.response_client = response_client

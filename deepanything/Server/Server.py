@@ -29,7 +29,7 @@ class ModelInfo:
     response_client : str
     response_model : str
     created : int = int(time.time())
-    reason_prompt : str = "<Think>{}</Think>",
+    reason_prompt : str = "<think>{}</think>",
     reason_system_prompt : Optional[str] = None
 
 class DeepAnythingServer:
@@ -102,7 +102,7 @@ class DeepAnythingServer:
             response_client = _model["response_client"]
             response_model = _model["response_model"]
             created = _model.get("created", int(time.time()))
-            reason_prompt = _model.get("reason_prompt", "<Think>{}</Think>")
+            reason_prompt = _model.get("reason_prompt", "<think>{}</think>")
             reason_system_prompt = _model.get("reason_system_prompt", None)
 
             if name in self.models:
