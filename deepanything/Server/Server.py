@@ -5,9 +5,10 @@ from typing import Dict, List, Optional, Any
 import json
 
 from openai.types.model import Model as OpenaiModel
-from fastapi import FastAPI,Depends, HTTPException, status,Header
+from fastapi import FastAPI,Depends, HTTPException, status,Header,Request
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from uvicorn.config import LOGGING_CONFIG
 
 from deepanything.DeepAnythingClient import chat_completion_stream_async, chat_completion_async
 from deepanything.ResponseClient import AsyncOpenaiResponseClient,AsyncResponseClient
@@ -35,6 +36,7 @@ class DeepAnythingServer:
     model_owner : str = "deepanything"
     api_keys : List[str] = []
     security = HTTPBearer()
+    log_config : Dict[str,Any] = LOGGING_CONFIG
 
     def __init__(self, host:str = None, port:int = None, config : Any or str = None):
         if config is not None:
@@ -66,36 +68,16 @@ class DeepAnythingServer:
         self.port = config_object.get("port",8000)
         self.model_owner = config_object.get("model_owner","deepanything")
 
-        reason_clients:List[Dict] = config_object.get("reason_clients",[])
+        self._load_reason_clients(config_object)
+        self._load_response_clients(config_object)
+        self._load_models(config_object)
 
-        for client in reason_clients:
-            name = client["name"]
-            base_url = client["base_url"]
-            api_key = client.get("api_key","")
-            extract_args = client.get("extract_args",{})
+        self.api_keys = config_object.get("api_keys",[])
+        self.log_config = config_object.get("log",LOGGING_CONFIG)
 
-            if client["type"] == 'deepseek':
-                self.reason_clients[name] = AsyncDeepseekReasonClient(base_url, api_key, **extract_args)
-            elif client["type"] == 'openai':
-                self.reason_clients[name] = AsyncOpenaiReasonClient(base_url, api_key, **extract_args)
-            else:
-                raise Exception("unknown reason client type")
 
-        response_clients : List[Dict] = config_object.get("response_clients",[])
-
-        for client in response_clients:
-            name = client["name"]
-            base_url = client["base_url"]
-            api_key = client.get("api_key","")
-            extract_args = client.get("extract_args",{})
-
-            if client["type"] == 'openai':
-                self.response_clients[name] = AsyncOpenaiResponseClient(base_url,api_key,**extract_args)
-            else:
-                raise Exception("unknown response client type")
-
-        models : List[Dict] = config_object.get("models",[])
-
+    def _load_models(self, config_object):
+        models: List[Dict] = config_object.get("models", [])
         for _model in models:
             name = _model["name"]
             reason_client = _model["reason_client"]
@@ -103,20 +85,51 @@ class DeepAnythingServer:
             response_client = _model["response_client"]
             response_model = _model["response_model"]
             created = _model.get("created", int(time.time()))
-            reason_prompt = _model.get("reason_prompt","<Think>{}</Think>")
+            reason_prompt = _model.get("reason_prompt", "<Think>{}</Think>")
+
+            if reason_client not in self.reason_clients:
+                raise ValueError(f"Reason client '{reason_model}' for '{name}' not found")
+
+            if response_client not in self.response_clients:
+                raise ValueError(f"Response client '{response_model}' for '{name}' not found")
 
             self.models[name] = ModelInfo(
-                name = name,
-                reason_client = reason_client,
-                reason_model = reason_model,
-                response_client = response_client,
-                response_model = response_model,
-                created = created,
-                reason_prompt = reason_prompt
+                name=name,
+                reason_client=reason_client,
+                reason_model=reason_model,
+                response_client=response_client,
+                response_model=response_model,
+                created=created,
+                reason_prompt=reason_prompt
             )
 
-        self.api_keys = config_object.get("api_keys",[])
+    def _load_response_clients(self, config_object):
+        response_clients: List[Dict] = config_object.get("response_clients", [])
+        for client in response_clients:
+            name = client["name"]
+            base_url = client["base_url"]
+            api_key = client.get("api_key", "")
+            extract_args = client.get("extract_args", {})
 
+            if client["type"] == 'openai':
+                self.response_clients[name] = AsyncOpenaiResponseClient(base_url, api_key, **extract_args)
+            else:
+                raise ValueError(f"Unsupported response client type '{client['type']}'")
+
+    def _load_reason_clients(self, config_object):
+        reason_clients: List[Dict] = config_object.get("reason_clients", [])
+        for client in reason_clients:
+            name = client["name"]
+            base_url = client["base_url"]
+            api_key = client.get("api_key", "")
+            extract_args = client.get("extract_args", {})
+
+            if client["type"] == 'deepseek':
+                self.reason_clients[name] = AsyncDeepseekReasonClient(base_url, api_key, **extract_args)
+            elif client["type"] == 'openai':
+                self.reason_clients[name] = AsyncOpenaiReasonClient(base_url, api_key, **extract_args)
+            else:
+                raise Exception("unknown reason client type")
 
     def add_reason_client(self,name:str,client:AsyncReasonClient):
         self.reason_clients[name] = client
@@ -126,7 +139,8 @@ class DeepAnythingServer:
 
     def add_model(self,name:str,model:ModelInfo):
         self.models[name] = model
-    def verify_authorization(self, authorization:Optional[str]):
+
+    def _verify_authorization(self, authorization:Optional[str]):
         if not self.api_keys:
             return
 
@@ -152,11 +166,28 @@ class DeepAnythingServer:
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-    async def chat_completions(self, query : Types.ChatCompletionQuery, authorization:Optional[str] = Header(None)):
-        self.verify_authorization(authorization)
+    async def chat_completions(
+            self,
+            request: Request,  # 新增加Request参数
+            query: Types.ChatCompletionQuery,
+            authorization: Optional[str] = Header(None)
+    ):
+        self._verify_authorization(authorization)
+
+        if query.model not in self.models:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Model not found",
+            )
+
         model = self.models[query.model]
-        async def sse(it: AsyncStream):
+
+        # 修改点1：将request传递给_sse_warp生成器
+        async def _sse_warp(it: AsyncStream, req: Request):
             async for chunk in it:
+                if await req.is_disconnected():
+                    await it.close()
+                    break
                 yield f"data: {chunk.model_dump_json(indent=None)}\n\n"
             yield "data: [DONE]"
 
@@ -168,7 +199,7 @@ class DeepAnythingServer:
             args.pop("max_tokens")
 
         if query.stream:
-            res = sse(
+            res = _sse_warp(
                 await chat_completion_stream_async(
                     messages=query.messages,
                     reason_client=self.reason_clients[model.reason_client],
@@ -180,7 +211,8 @@ class DeepAnythingServer:
                     response_args=args,
                     reason_args=args,
                     max_tokens=max_tokens
-                )
+                ),
+                request  # 传入request对象
             )
             return StreamingResponse(
                 res,
@@ -188,16 +220,16 @@ class DeepAnythingServer:
             )
         else:
             res = await chat_completion_async(
-                    messages=query.messages,
-                    reason_client=self.reason_clients[model.reason_client],
-                    reason_model=model.reason_model,
-                    response_client=self.response_clients[model.response_client],
-                    response_model=model.response_model,
-                    show_model=model.name,
-                    reason_prompt=model.reason_prompt,
-                    response_args=args,
-                    reason_args=args,
-                    max_tokens=max_tokens
+                messages=query.messages,
+                reason_client=self.reason_clients[model.reason_client],
+                reason_model=model.reason_model,
+                response_client=self.response_clients[model.response_client],
+                response_model=model.response_model,
+                show_model=model.name,
+                reason_prompt=model.reason_prompt,
+                response_args=args,
+                reason_args=args,
+                max_tokens=max_tokens
             )
             return res.model_dump_json()
 
