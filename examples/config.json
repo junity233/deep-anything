@@ -8,6 +8,12 @@
       "type" : "deepseek",
       "base_url" : "https://api.siliconflow.cn/v1",
       "api_key" : "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name" : "qwen",
+      "type" : "openai",
+      "base_url" : "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "api_key" : "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     }
   ],
   "response_clients": [
@@ -24,7 +30,17 @@
       "reason_client" : "siliconflow",
       "response_client" : "qwen",
       "reason_model": "Pro/deepseek-ai/DeepSeek-R1",
-      "response_model" :  "qwen-max-latest"
+      "response_model" :  "qwen-max-latest",
+      "reason_prompt" : "<think>{}</think>"
+    },
+    {
+      "name": "QWQ-Qwen-max",
+      "reason_client" : "qwen",
+      "response_client" : "qwen",
+      "reason_model": "qwq-32b-preview",
+      "response_model" :  "qwen-max-latest",
+      "reason_prompt" : "<think>{}</think>",
+      "reason_system_prompt" : "你是一个用于在回答问题之前思考问题的模型，你的思考过程和回复不会直接被用户看到，而是作为提示传递给下一个模型。对于用户的任何问题，你都应该认真进行思考，给出尽可能详细的思考过程。"
     }
   ],
   "api_keys" : [
@@ -59,7 +75,8 @@
     "loggers": {
         "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": false},
         "uvicorn.error": {"level": "INFO"},
-        "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": false}
+        "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": false},
+        "deepanything": {"handlers": ["default"], "level": "INFO", "propagate": false}
     }
   }
 }

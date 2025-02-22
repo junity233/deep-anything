@@ -151,6 +151,12 @@ Below is an example of a configuration file:
       "type" : "deepseek",
       "base_url" : "https://api.siliconflow.cn/v1",
       "api_key" : "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name" : "qwen",
+      "type" : "openai",
+      "base_url" : "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "api_key" : "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     }
   ],
   "response_clients": [
@@ -167,7 +173,17 @@ Below is an example of a configuration file:
       "reason_client" : "siliconflow",
       "response_client" : "qwen",
       "reason_model": "Pro/deepseek-ai/DeepSeek-R1",
-      "response_model" :  "qwen-max-latest"
+      "response_model" :  "qwen-max-latest",
+      "reason_prompt" : "<think>{}</think>"
+    },
+    {
+      "name": "QWQ-Qwen-max",
+      "reason_client" : "qwen",
+      "response_client" : "qwen",
+      "reason_model": "qwq-32b-preview",
+      "response_model" :  "qwen-max-latest",
+      "reason_prompt" : "<think>{}</think>",
+      "reason_system_prompt" : "You are a model designed to contemplate questions before providing answers. Your thought process and responses are not directly visible to the user but are instead passed as prompts to the next model. For any question posed by the user, you should carefully consider it and provide as detailed a thought process as possible."
     }
   ],
   "api_keys" : [
@@ -202,7 +218,8 @@ Below is an example of a configuration file:
     "loggers": {
         "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": false},
         "uvicorn.error": {"level": "INFO"},
-        "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": false}
+        "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": false},
+        "deepanything": {"handlers": ["default"], "level": "INFO", "propagate": false}
     }
   }
 }
@@ -210,13 +227,17 @@ Below is an example of a configuration file:
 
 #### **Detailed Explanation**
 
-- reason_clients: Configuration for thinking models, currently supports deepseek and openai types. When the type is openai, deepanything directly uses the model's output as the thinking content, and it is recommended to use qwq-32b in this case.
-- response_clients: Configuration for response models, currently only supports the openai type.
-- api_keys: API keys for user authentication. When left blank or an empty list, the server does not use API keys for authentication.
-- log: Log configuration. If this item is not filled in, the default logging configuration of uvicorn will be used. For details, please refer to [uvicorn logging configuration](https://www.uvicorn.org/settings/#logging).
+- reason_clients: Configuration for the thinking model, currently supporting two types: deepseek and openai. When the type is openai, DeepAnything directly uses the model's output as the thinking content; it is recommended to use qwq-32b in this case.
+- response_clients: Configuration for the response model, currently supporting only one type: openai.
+- models: Model configuration, including model name, thinking model, response model, parameters for the thinking model, and parameters for the response model.
+    - reason_prompt: Specifies how the thinking content should be embedded into the conversation. DeepAnything will use `reason_prompt` to format the thinking content. The default is `<think>{}</think>`.
+    - reason_system_prompt: Adds extra prompt words for the thinking model. This prompt will be placed at the end of the message as a `system` role and passed to the thinking model. If not specified, it will not take effect.
+- api_keys: API keys used for user identity verification. When not filled or an empty list, the server does not use API keys for authentication.
+- log: Log configuration. If this item is not filled, the default uvicorn log configuration will be used. For more details, refer to [uvicorn logging configuration](https://www.uvicorn.org/settings/#logging) and [Python Logging configuration](https://docs.python.org/3/library/logging.config.html).}
 
 ## Deploying with Docker
 ### 1. Pull the Image
+
 ```bash
 docker pull junity233/deepanything:latest
 ```

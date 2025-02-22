@@ -130,7 +130,7 @@ asyncio.run(main())
 | --config | 配置文件路径|
 
 #### 配置文件格式
-下面是一个配置文件的示例：
+下面是一个配置文件的示例，提供了 `R1-Qwen-max` 和 `QWQ-Qwen-max` 两个模型。
 
 ```json
 // Using R1 with Qwen-Max-Latest
@@ -143,6 +143,12 @@ asyncio.run(main())
       "type" : "deepseek",
       "base_url" : "https://api.siliconflow.cn/v1",
       "api_key" : "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name" : "qwen",
+      "type" : "openai",
+      "base_url" : "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "api_key" : "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     }
   ],
   "response_clients": [
@@ -159,7 +165,17 @@ asyncio.run(main())
       "reason_client" : "siliconflow",
       "response_client" : "qwen",
       "reason_model": "Pro/deepseek-ai/DeepSeek-R1",
-      "response_model" :  "qwen-max-latest"
+      "response_model" :  "qwen-max-latest",
+      "reason_prompt" : "<think>{}</think>"
+    },
+    {
+      "name": "QWQ-Qwen-max",
+      "reason_client" : "qwen",
+      "response_client" : "qwen",
+      "reason_model": "qwq-32b-preview",
+      "response_model" :  "qwen-max-latest",
+      "reason_prompt" : "<think>{}</think>",
+      "reason_system_prompt" : "你是一个用于在回答问题之前思考问题的模型，你的思考过程和回复不会直接被用户看到，而是作为提示传递给下一个模型。对于用户的任何问题，你都应该认真进行思考，给出尽可能详细的思考过程。"
     }
   ],
   "api_keys" : [
@@ -194,7 +210,8 @@ asyncio.run(main())
     "loggers": {
         "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": false},
         "uvicorn.error": {"level": "INFO"},
-        "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": false}
+        "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": false},
+        "deepanything": {"handlers": ["default"], "level": "INFO", "propagate": false}
     }
   }
 }
@@ -203,8 +220,11 @@ asyncio.run(main())
 
 - reason_clients：思考模型的配置，目前支持deepseek和openai两种类型。当type为openai时，deepanything直接使用模型的输出作为思考内容，推荐使用qwq-32b在这种情况下使用。
 - response_clients：回复模型的配置，目前仅支持openai一种类型。
+- models ：模型配置，包含模型名称、思考模型、回复模型、思考模型参数、回复模型参数等。
+    - reason_prompt ：指定模型如何将思考内容嵌入到对话中。DeepAnything会使用 `reason_prompt` 来格式化思考内容。默认为 `<think>{}</think>`。
+    - reason_system_prompt：为思考模型添加额外的提示词。这条提示词会以 `system` 的身份放在消息的末尾，传递给思考模型。若不指定，则不会生效。
 - api_keys：API密钥，用于验证用户身份。当不填写或为空列表时，服务器不使用API密钥进行身份验证。
-- log: 日志配置，若不填写此项则使用uvicorn默认的日志配置。具体可参考 [uvicorn日志配置](https://www.uvicorn.org/settings/#logging)。
+- log: 日志配置，若不填写此项则使用uvicorn默认的日志配置。具体可参考 [uvicorn日志配置](https://www.uvicorn.org/settings/#logging) 和 [Python Logging配置](https://docs.python.org/3/library/logging.config.html)。
 
 ## 使用 Docker 部署
 ### 1.拉取镜像
