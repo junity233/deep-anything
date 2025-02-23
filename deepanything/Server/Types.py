@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+from typing import List, Optional
+
 from openai.types.model import Model as OpenaiModel
-from typing import Dict, List, Optional
+from pydantic import BaseModel
 
 
 class ModelsListResponse(BaseModel):

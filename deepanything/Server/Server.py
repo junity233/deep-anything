@@ -1,24 +1,23 @@
-from chunk import Chunk
-from dataclasses import dataclass
-import time
-import uvicorn
-from typing import Dict, List, Optional, Any
 import json
-
-from openai.types.model import Model as OpenaiModel
-from fastapi import FastAPI,Depends, HTTPException, status,Header,Request
-from fastapi.responses import StreamingResponse,Response
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from uvicorn.config import LOGGING_CONFIG
 import logging
 import logging.config
+import time
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Any
+
+import uvicorn
+from fastapi import FastAPI, HTTPException, status, Header, Request
+from fastapi.responses import StreamingResponse, Response
+from fastapi.security import HTTPBearer
+from openai.types.model import Model as OpenaiModel
+from uvicorn.config import LOGGING_CONFIG
 
 from deepanything.DeepAnythingClient import chat_completion_stream_async, chat_completion_async
-from deepanything.ResponseClient import AsyncOpenaiResponseClient,AsyncResponseClient
-from deepanything.Stream import AsyncStream
-from deepanything.ReasonClient import AsyncDeepseekReasonClient,AsyncOpenaiReasonClient,AsyncReasonClient
+from deepanything.ReasonClient import AsyncDeepseekReasonClient, AsyncOpenaiReasonClient, AsyncReasonClient
+from deepanything.ResponseClient import AsyncOpenaiResponseClient, AsyncResponseClient
 from deepanything.Server import Types
-from deepanything.metadatas import VERSION,PYTHON_RUNTIME
+from deepanything.Stream import AsyncStream
+from deepanything.metadatas import VERSION, PYTHON_RUNTIME
 
 
 @dataclass
@@ -161,7 +160,7 @@ class DeepAnythingServer:
 
 
             if name in self.response_clients:
-                self.logger.error(f"Detected duplicate response clients : {name}")
+                self.logger.error(f"Detected duplicate reason clients : {name}")
                 exit(0)
 
             if client["type"] == 'deepseek':

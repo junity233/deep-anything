@@ -1,13 +1,14 @@
 import time
 from typing import Optional, List
+
 from openai.types.chat.chat_completion import ChatCompletion
 
-from deepanything.Stream import Stream,AsyncStream
-from deepanything.Utility import make_usage, make_chat_completion_message, merge_chunk, async_merge_chunk, \
-    make_chat_completion_chunk, make_chat_completion, make_chat_completion_choice, merge_usage, make_id_by_timestamp, \
+from deepanything.ReasonClient import ReasonClient, AsyncReasonClient
+from deepanything.ResponseClient import ResponseClient, AsyncResponseClient
+from deepanything.Stream import Stream, AsyncStream
+from deepanything.Utility import make_usage, make_chat_completion_message, make_chat_completion, \
+    make_chat_completion_choice, merge_usage, make_id_by_timestamp, \
     extend_message
-from deepanything.ResponseClient import ResponseClient,AsyncResponseClient
-from deepanything.ReasonClient import ReasonClient,AsyncReasonClient
 
 
 def _merge_chat_completion(
