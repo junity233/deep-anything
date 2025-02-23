@@ -1,13 +1,15 @@
 from typing import Optional
 
 import openai
-from openai import OpenAI
 from openai.types.chat import chat_completion, chat_completion_chunk
 from deepanything.Stream import Stream,AsyncStream
 from deepanything import Utility
 
 
 class ReasonClient:
+    """
+    Base Class for Reason Clients
+    """
     def __init__(self) -> None:
         pass
 
@@ -19,6 +21,16 @@ class ReasonClient:
             stream = False,
             **kwargs
     ) -> Stream or chat_completion.ChatCompletion:
+        """
+        Generate reason content like Deepseek R1. This function returns a value that is almost the same as the OpenAI API, but 'content' is None and 'reasoning_content' is reason content.
+
+        :param messages: Messages
+        :param model: Model
+        :param reason_system_prompt: Adds extra prompt words for the thinking model. This prompt will be placed at the end of the message as a `system` role and passed to the thinking model. If not specified, it will not take effect.
+        :param stream: Whether you use streaming return
+        :param kwargs: Additional parameters passed to the reason client, such as temperature, top_k, etc.
+        :return: Return a Stream if stream is Ture,otherwise return a ChatCompletion
+        """
         if stream:
             return self.reason_stream(messages, model, **kwargs)
 
@@ -33,9 +45,21 @@ class ReasonClient:
                       reason_system_prompt:Optional[str] = None,
                       **kwargs
                       ) -> Stream:
+        """
+        Generate reason content like Deepseek R1. This function returns a value that is almost the same as the OpenAI API, but 'content' is None and 'reasoning_content' is reason content.This method uses streaming return
+
+        :param messages: Messages
+        :param model: Model
+        :param reason_system_prompt: Adds extra prompt words for the thinking model. This prompt will be placed at the end of the message as a `system` role and passed to the thinking model. If not specified, it will not take effect.
+        :param kwargs: Additional parameters passed to the reason client, such as temperature, top_k, etc.
+        :return: Return a Stream if stream is Ture,otherwise return a ChatCompletion
+        """
         raise NotImplementedError
 
 class AsyncReasonClient:
+    """
+    Base Class for Async Reason Clients
+    """
     def __init__(self) -> None:
         pass
 
@@ -47,6 +71,16 @@ class AsyncReasonClient:
             stream = False,
             **kwargs
     ) -> AsyncStream or chat_completion.ChatCompletion:
+        """
+        Generate reason content like Deepseek R1. This function returns a value that is almost the same as the OpenAI API, but 'content' is None and 'reasoning_content' is reason content.
+
+        :param messages: Messages
+        :param model: Model
+        :param reason_system_prompt: Adds extra prompt words for the thinking model. This prompt will be placed at the end of the message as a `system` role and passed to the thinking model. If not specified, it will not take effect.
+        :param stream: Whether you use streaming return
+        :param kwargs: Additional parameters passed to the reason client, such as temperature, top_k, etc.
+        :return: Return a Stream if stream is Ture,otherwise return a ChatCompletion
+        """
         if stream:
             return await self.reason_stream(messages, model, **kwargs)
 
@@ -61,12 +95,29 @@ class AsyncReasonClient:
                             reason_system_prompt:Optional[str] = None,
                             **kwargs
                             ) -> AsyncStream:
+        """
+        Generate reason content like Deepseek R1. This function returns a value that is almost the same as the OpenAI API, but 'content' is None and 'reasoning_content' is reason content.This method uses streaming return
+
+        :param messages: Messages
+        :param model: Model
+        :param reason_system_prompt: Adds extra prompt words for the thinking model. This prompt will be placed at the end of the message as a `system` role and passed to the thinking model. If not specified, it will not take effect.
+        :param kwargs: Additional parameters passed to the reason client, such as temperature, top_k, etc.
+        :return: Return a AsyncStream if stream is Ture,otherwise return a ChatCompletion
+        """
         raise NotImplementedError
 
 class DeepseekReasonClient(ReasonClient):
+    """
+    Deepseek Reason Client
+    """
     client : openai.OpenAI
 
     def __init__(self,base_url:str,api_key:str,**kwargs) -> None:
+        """
+        :param base_url: Base url
+        :param api_key: Api key
+        :param kwargs: Other parameters used to create clients
+        """
         super().__init__()
         self.client = openai.OpenAI(
             base_url=base_url,
@@ -103,9 +154,18 @@ class DeepseekReasonClient(ReasonClient):
                 .on_close(lambda _: stream.close()))
 
 class AsyncDeepseekReasonClient(AsyncReasonClient):
+    """
+    Deepseek Reason Async Client
+    """
     client : openai.AsyncOpenAI
 
     def __init__(self,base_url:str,api_key:str,**kwargs) -> None:
+        """
+        :param base_url: Base url
+        :param api_key: Api key
+        :param kwargs: Other parameters used to create clients
+        """
+
         super().__init__()
         self.client = openai.AsyncOpenAI(
             base_url=base_url,
@@ -153,6 +213,9 @@ def _rebuild_chunk_for_openai(
 
 
 class OpenaiReasonClient(ReasonClient):
+    """
+    OpenAI Reason Client.Used When using models similar to QWQ
+    """
     client : openai.OpenAI
     def __init__(
             self,
@@ -160,6 +223,11 @@ class OpenaiReasonClient(ReasonClient):
             api_key:str,
             **kwargs
     ) -> None:
+        """
+        :param base_url: Base url
+        :param api_key: Api key
+        :param kwargs: Other parameters used to create clients
+        """
         super().__init__()
         self.client = openai.OpenAI(
             base_url=base_url,
@@ -174,7 +242,7 @@ class OpenaiReasonClient(ReasonClient):
                       **kwargs
                       ) -> Stream:
         if reason_system_prompt is not None:
-            messages = Utility.attend_message(messages,role="system",content=reason_system_prompt)
+            messages = Utility.extend_message(messages, role="system", content=reason_system_prompt)
 
         stream =  self.client.chat.completions.create(
             messages=messages,
@@ -198,7 +266,7 @@ class OpenaiReasonClient(ReasonClient):
             return self.reason_stream(messages, model, **kwargs)
 
         if reason_system_prompt is not None:
-            messages = Utility.attend_message(messages,role="system",content=reason_system_prompt)
+            messages = Utility.extend_message(messages, role="system", content=reason_system_prompt)
 
         completion = self.client.chat.completions.create(
             messages=messages,
@@ -213,8 +281,16 @@ class OpenaiReasonClient(ReasonClient):
         return completion
 
 class AsyncOpenaiReasonClient(AsyncReasonClient):
+    """
+    OpenAI Reason Async Client.Used When using models similar to QWQ
+    """
     client : openai.AsyncOpenAI
     def __init__(self,base_url:str,api_key:str,**kwargs) -> None:
+        """
+        :param base_url: Base url
+        :param api_key: Api key
+        :param kwargs: Other parameters used to create clients
+        """
         super().__init__()
         self.client = openai.AsyncOpenAI(
             base_url=base_url,
@@ -230,7 +306,7 @@ class AsyncOpenaiReasonClient(AsyncReasonClient):
                             ) -> AsyncStream:
 
         if reason_system_prompt is not None:
-            messages = Utility.attend_message(messages,role="system",content=reason_system_prompt)
+            messages = Utility.extend_message(messages, role="system", content=reason_system_prompt)
 
         stream =  await self.client.chat.completions.create(
             messages=messages,
@@ -256,7 +332,7 @@ class AsyncOpenaiReasonClient(AsyncReasonClient):
             return await self.reason_stream(messages, model, **kwargs)
 
         if reason_system_prompt is not None:
-            messages = Utility.attend_message(messages,role="system",content=reason_system_prompt)
+            messages = Utility.extend_message(messages, role="system", content=reason_system_prompt)
 
         completion = await self.client.chat.completions.create(
             messages=messages,

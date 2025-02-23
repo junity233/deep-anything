@@ -210,7 +210,7 @@ def merge_usage(
 def make_id_by_timestamp():
     return "chatcmpl-" + str(uuid.uuid4())
 
-def attend_message(
+def extend_message(
         messages : List,
         role : Literal["developer", "system", "user", "assistant", "tool"],
         content : Optional[str] = None,

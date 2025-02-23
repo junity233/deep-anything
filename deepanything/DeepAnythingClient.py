@@ -5,7 +5,7 @@ from openai.types.chat.chat_completion import ChatCompletion
 from deepanything.Stream import Stream,AsyncStream
 from deepanything.Utility import make_usage, make_chat_completion_message, merge_chunk, async_merge_chunk, \
     make_chat_completion_chunk, make_chat_completion, make_chat_completion_choice, merge_usage, make_id_by_timestamp, \
-    attend_message
+    extend_message
 from deepanything.ResponseClient import ResponseClient,AsyncResponseClient
 from deepanything.ReasonClient import ReasonClient,AsyncReasonClient
 
@@ -42,7 +42,7 @@ def _build_message(
         reason_content : str,
         reason_prompt : str
 ) -> List:
-    return attend_message(messages,role="assistant",content=reason_prompt.format(reason_content))
+    return extend_message(messages, role="assistant", content=reason_prompt.format(reason_content))
 def _process_reason_chunk(chunk, reasoning_contents, reason_usage, show_model, created, _id):
     new_chunk = chunk.model_copy(deep=False)
     new_chunk.model = show_model
@@ -87,6 +87,27 @@ def chat_completion(
         _id: str = make_id_by_timestamp(),
         max_tokens : Optional[int] = None
     ) -> Stream or ChatCompletion:
+
+    """
+    Make chat completion synchronously.
+
+    :param messages: Messages
+    :param reason_client: Reason client
+    :param reason_model: Reason model
+    :param response_client: Response client
+    :param response_model: Response model
+    :param show_model: Specify the model name in the return value
+    :param reason_args: Additional parameters passed to the reason client, such as temperature, top_k, etc.
+    :param response_args: Additional parameters passed to the response client, such as temperature, top_k, etc.
+    :param reason_prompt: Specifies how the thinking content should be embedded into the conversation. DeepAnything will use `reason_prompt` to format the thinking content. The default is `<think>{}</think>`.
+    :param reason_system_prompt: Adds extra prompt words for the thinking model. This prompt will be placed at the end of the message as a `system` role and passed to the thinking model. If not specified, it will not take effect.
+    :param created: The timestamp indicating the time when the chat completion was created
+    :param stream: Whether you use streaming return
+    :param _id: Specify the `id` in the return value
+    :param max_tokens: max_tokens
+    :return: Return a Stream if stream is Ture,otherwise return a ChatCompletion
+    """
+
     if response_args is None:
         response_args = {}
     if reason_args is None:
@@ -150,6 +171,26 @@ def chat_completion_stream(
         _id: str = make_id_by_timestamp(),
         max_tokens : Optional[int] = None
 ) -> Stream:
+
+    """
+    Make chat completion synchronously.This method uses streaming return
+
+    :param messages: Messages
+    :param reason_client: Reason client
+    :param reason_model: Reason model
+    :param response_client: Response client
+    :param response_model: Response model
+    :param show_model: Specify the model name in the return value
+    :param reason_args: Additional parameters passed to the reason client, such as temperature, top_k, etc.
+    :param response_args: Additional parameters passed to the response client, such as temperature, top_k, etc.
+    :param reason_prompt: Specifies how the thinking content should be embedded into the conversation. DeepAnything will use `reason_prompt` to format the thinking content. The default is `<think>{}</think>`.
+    :param reason_system_prompt: Adds extra prompt words for the thinking model. This prompt will be placed at the end of the message as a `system` role and passed to the thinking model. If not specified, it will not take effect.
+    :param created: The timestamp indicating the time when the chat completion was created
+    :param _id: Specify the `id` in the return value
+    :param max_tokens: max_tokens
+    :return: A stream
+    """
+
     if response_args is None:
         response_args = {}
     if reason_args is None:
@@ -214,6 +255,26 @@ async def chat_completion_async(
         stream=False,
         max_tokens : Optional[int] = None
 ):
+    """
+    Make chat completion asynchronously.
+
+    :param messages: Messages
+    :param reason_client: Reason client
+    :param reason_model: Reason model
+    :param response_client: Response client
+    :param response_model: Response model
+    :param show_model: Specify the model name in the return value
+    :param reason_args: Additional parameters passed to the reason client, such as temperature, top_k, etc.
+    :param response_args: Additional parameters passed to the response client, such as temperature, top_k, etc.
+    :param reason_prompt: Specifies how the thinking content should be embedded into the conversation. DeepAnything will use `reason_prompt` to format the thinking content. The default is `<think>{}</think>`.
+    :param reason_system_prompt: Adds extra prompt words for the thinking model. This prompt will be placed at the end of the message as a `system` role and passed to the thinking model. If not specified, it will not take effect.
+    :param created: The timestamp indicating the time when the chat completion was created
+    :param stream: Whether you use streaming return
+    :param _id: Specify the `id` in the return value
+    :param max_tokens: max_tokens
+    :return: Return a AsyncStream if stream is Ture,otherwise return a ChatCompletion
+    """
+
     if response_args is None:
         response_args = {}
     if reason_args is None:
@@ -279,6 +340,25 @@ async def chat_completion_stream_async(
         _id: str = make_id_by_timestamp(),
         max_tokens : Optional[int] = None
 ) -> AsyncStream:
+    """
+    Make chat completion asynchronously.This method uses streaming return
+
+    :param messages: Messages
+    :param reason_client: Reason client
+    :param reason_model: Reason model
+    :param response_client: Response client
+    :param response_model: Response model
+    :param show_model: Specify the model name in the return value
+    :param reason_args: Additional parameters passed to the reason client, such as temperature, top_k, etc.
+    :param response_args: Additional parameters passed to the response client, such as temperature, top_k, etc.
+    :param reason_prompt: Specifies how the thinking content should be embedded into the conversation. DeepAnything will use `reason_prompt` to format the thinking content. The default is `<think>{}</think>`.
+    :param reason_system_prompt: Adds extra prompt words for the thinking model. This prompt will be placed at the end of the message as a `system` role and passed to the thinking model. If not specified, it will not take effect.
+    :param created: The timestamp indicating the time when the chat completion was created
+    :param _id: Specify the `id` in the return value
+    :param max_tokens: max_tokens
+    :return: A AsyncStream
+    """
+
     if response_args is None:
         response_args = {}
     if reason_args is None:
@@ -328,20 +408,32 @@ async def chat_completion_stream_async(
     return AsyncStream(_iter()).on_next(lambda it:it.__anext__()).on_close(lambda _:stream.close())
 
 class DeepAnythingClient:
+    """
+    DeepAnything Client
+    """
+
     reason_client : ReasonClient
     response_client : ResponseClient
-
-    reason_prompt : str
+    reason_prompt : Optional[str]
+    reason_system_prompt : Optional[str]
 
     def __init__(
             self,
             reason_client: ReasonClient,
             response_client: ResponseClient,
-            reason_prompt : str = "<think>{}</think>"
+            reason_prompt : str = None,
+            reason_system_prompt: Optional[str] = None
     ):
+        """
+        :param reason_client: Reason client
+        :param response_client: Response client
+        :param reason_prompt: Default value for reason_prompt
+        :param reason_system_prompt: Default value for reason_system_prompt
+        """
         self.reason_client = reason_client
         self.response_client = response_client
         self.reason_prompt = reason_prompt
+        self.reason_system_prompt = reason_system_prompt
 
     def chat_completion(
             self,
@@ -351,11 +443,35 @@ class DeepAnythingClient:
             show_model : str,
             reason_args=None,
             response_args=None,
+            reason_prompt: Optional[str] = None,
             reason_system_prompt: Optional[str] = None,
             created : int = int(time.time()),
             _id : str = make_id_by_timestamp(),
-            stream = False
+            stream = False,
+            max_tokens : Optional[int] = None
     ) -> Stream or ChatCompletion:
+        """
+        Make chat completion synchronously.
+
+        :param messages: Messages
+        :param reason_model: Reason model
+        :param response_model: Response model
+        :param show_model: Specify the model name in the return value
+        :param reason_args: Additional parameters passed to the reason client, such as temperature, top_k, etc.
+        :param response_args: Additional parameters passed to the response client, such as temperature, top_k, etc.
+        :param reason_prompt: Specifies how the thinking content should be embedded into the conversation. DeepAnything will use `reason_prompt` to format the thinking content. The default is `<think>{}</think>`.
+        :param reason_system_prompt: Adds extra prompt words for the thinking model. This prompt will be placed at the end of the message as a `system` role and passed to the thinking model. If not specified, it will not take effect.
+        :param created: The timestamp indicating the time when the chat completion was created
+        :param stream: Whether you use streaming return
+        :param _id: Specify the `id` in the return value
+        :param max_tokens: max_tokens
+        :return: Return a Stream if stream is Ture,otherwise return a ChatCompletion
+        """
+        if reason_prompt is None:
+            reason_prompt = self.reason_prompt
+        if reason_system_prompt is None:
+            reason_system_prompt = self.reason_system_prompt
+
         return chat_completion(
             messages=messages,
             reason_model=reason_model,
@@ -365,11 +481,12 @@ class DeepAnythingClient:
             show_model=show_model,
             reason_args=reason_args,
             response_args=response_args,
+            reason_prompt=reason_prompt,
             reason_system_prompt=reason_system_prompt,
             created=created,
             _id=_id,
             stream=stream,
-            reason_prompt=self.reason_prompt
+            max_tokens=max_tokens
         )
 
     def chat_completion_stream(
@@ -380,10 +497,33 @@ class DeepAnythingClient:
             show_model : str,
             reason_args=None,
             response_args=None,
+            reason_prompt: Optional[str] = None,
             reason_system_prompt: Optional[str] = None,
             created : int = int(time.time()),
-            _id : str = make_id_by_timestamp()
+            _id : str = make_id_by_timestamp(),
+            max_tokens : Optional[int] = None
     ) -> Stream:
+        """
+        Make chat completion synchronously.This method uses streaming return
+
+        :param messages: Messages
+        :param reason_model: Reason model
+        :param response_model: Response model
+        :param show_model: Specify the model name in the return value
+        :param reason_args: Additional parameters passed to the reason client, such as temperature, top_k, etc.
+        :param response_args: Additional parameters passed to the response client, such as temperature, top_k, etc.
+        :param reason_prompt: Specifies how the thinking content should be embedded into the conversation. DeepAnything will use `reason_prompt` to format the thinking content. The default is `<think>{}</think>`.
+        :param reason_system_prompt: Adds extra prompt words for the thinking model. This prompt will be placed at the end of the message as a `system` role and passed to the thinking model. If not specified, it will not take effect.
+        :param created: The timestamp indicating the time when the chat completion was created
+        :param _id: Specify the `id` in the return value
+        :param max_tokens: max_tokens
+        :return: Return a Stream if stream is Ture,otherwise return a ChatCompletion
+        """
+
+        if reason_prompt is None:
+            reason_prompt = self.reason_prompt
+        if reason_system_prompt is None:
+            reason_system_prompt = self.reason_system_prompt
         return chat_completion_stream(
             messages=messages,
             reason_model=reason_model,
@@ -393,28 +533,40 @@ class DeepAnythingClient:
             show_model=show_model,
             reason_args=reason_args,
             response_args=response_args,
+            reason_prompt=reason_prompt,
             reason_system_prompt=reason_system_prompt,
             created=created,
             _id=_id,
-            reason_prompt=self.reason_prompt
+            max_tokens=max_tokens
         )
 
 
 class AsyncDeepAnythingClient:
+    """
+        DeepAnything Async Client
+    """
     reason_client : AsyncReasonClient
     response_client : AsyncResponseClient
-
-    reason_prompt : str
+    reason_prompt : Optional[str]
+    reason_system_prompt : Optional[str]
 
     def __init__(
             self,
             reason_client: AsyncReasonClient,
             response_client: AsyncResponseClient,
-            reason_prompt : str = "<think>{}</think>"
+            reason_prompt : Optional[str] = None,
+            reason_system_prompt: Optional[str] = None
     ):
+        """
+        :param reason_client: Reason client
+        :param response_client: Response client
+        :param reason_prompt: Default value for reason_prompt
+        :param reason_system_prompt: Default value for reason_system_prompt
+        """
         self.reason_client = reason_client
         self.response_client = response_client
         self.reason_prompt = reason_prompt
+        self.reason_system_prompt = reason_system_prompt
 
     async def chat_completion(
             self,
@@ -424,11 +576,36 @@ class AsyncDeepAnythingClient:
             show_model: str,
             reason_args=None,
             response_args=None,
+            reason_prompt: Optional[str] = None,
             reason_system_prompt: Optional[str] = None,
             created: int = int(time.time()),
             _id: str = make_id_by_timestamp(),
-            stream=False
+            stream=False,
+            max_tokens : Optional[int] = None
     ):
+        """
+            Make chat completion asynchronously.
+
+            :param stream: Whether you use streaming return
+            :param messages: Messages
+            :param reason_model: Reason model
+            :param response_model: Response model
+            :param show_model: Specify the model name in the return value
+            :param reason_args: Additional parameters passed to the reason client, such as temperature, top_k, etc.
+            :param response_args: Additional parameters passed to the response client, such as temperature, top_k, etc.
+            :param reason_prompt: Specifies how the thinking content should be embedded into the conversation. DeepAnything will use `reason_prompt` to format the thinking content. The default is `<think>{}</think>`.
+            :param reason_system_prompt: Adds extra prompt words for the thinking model. This prompt will be placed at the end of the message as a `system` role and passed to the thinking model. If not specified, it will not take effect.
+            :param created: The timestamp indicating the time when the chat completion was created
+            :param _id: Specify the `id` in the return value
+            :param max_tokens: max_tokens
+            :return: Return an AsyncStream if stream is Ture,otherwise return a ChatCompletion
+        """
+
+        if reason_prompt is None:
+            reason_prompt = self.reason_prompt
+        if reason_system_prompt is None:
+            reason_system_prompt = self.reason_system_prompt
+
         return await chat_completion_async(
             messages=messages,
             reason_model=reason_model,
@@ -438,11 +615,12 @@ class AsyncDeepAnythingClient:
             show_model=show_model,
             reason_args=reason_args,
             response_args=response_args,
+            reason_prompt=reason_prompt,
             reason_system_prompt=reason_system_prompt,
             created=created,
             _id=_id,
             stream=stream,
-            reason_prompt=self.reason_prompt
+            max_tokens=max_tokens
         )
 
     async def chat_completion_stream(
@@ -453,10 +631,34 @@ class AsyncDeepAnythingClient:
             show_model : str,
             reason_args=None,
             response_args=None,
+            reason_prompt: Optional[str] = None,
             reason_system_prompt: Optional[str] = None,
             created : int = int(time.time()),
-            _id : str = make_id_by_timestamp()
+            _id : str = make_id_by_timestamp(),
+            max_tokens : Optional[int] = None
     ) -> AsyncStream:
+        """
+            Make chat completion asynchronously.This method uses streaming return
+
+            :param messages: Messages
+            :param reason_model: Reason model
+            :param response_model: Response model
+            :param show_model: Specify the model name in the return value
+            :param reason_args: Additional parameters passed to the reason client, such as temperature, top_k, etc.
+            :param response_args: Additional parameters passed to the response client, such as temperature, top_k, etc.
+            :param reason_prompt: Specifies how the thinking content should be embedded into the conversation. DeepAnything will use `reason_prompt` to format the thinking content. The default is `<think>{}</think>`.
+            :param reason_system_prompt: Adds extra prompt words for the thinking model. This prompt will be placed at the end of the message as a `system` role and passed to the thinking model. If not specified, it will not take effect.
+            :param created: The timestamp indicating the time when the chat completion was created
+            :param _id: Specify the `id` in the return value
+            :param max_tokens: max_tokens
+            :return: Return a Stream if stream is Ture,otherwise return a ChatCompletion
+        """
+
+        if reason_prompt is None:
+            reason_prompt = self.reason_prompt
+        if reason_system_prompt is None:
+            reason_system_prompt = self.reason_system_prompt
+
         return await chat_completion_stream_async(
             messages=messages,
             reason_model=reason_model,
@@ -466,8 +668,9 @@ class AsyncDeepAnythingClient:
             show_model=show_model,
             reason_args=reason_args,
             response_args=response_args,
+            reason_prompt=reason_prompt,
             reason_system_prompt=reason_system_prompt,
             created=created,
             _id=_id,
-            reason_prompt=self.reason_prompt
+            max_tokens=max_tokens
         )
